@@ -3,31 +3,34 @@
 
 ##### initial rise_mlir code
 ```C++
-func @main() {
-  %array = rise.literal #rise.lit<array<4, !rise.int, [1,2,3,4]>>
-
+rise.interface "foo" {
   %addFun = rise.add #rise.int
-  %initializer = rise.literal #rise.lit<int<0>>
+  %init = rise.literal #rise.lit<int<0>>
+  
   %reduce4Ints = rise.reduce #rise.nat<4> #rise.int #rise.int
-  %result = rise.apply %reduce4Ints, %addFun, %initializer, %array0
+  %result = rise.apply %reduce4Ints, %addFun, %init, %array0
+  return %result
+}
+
+func @main() {
+  %res = rise.call "foo" ()
   return
 }
 ```
-            |       (rise.reduce ... rise.apply) expanded
-            |  
+            |       ...                     
+            |       rise.reduce 
+            |       rise.apply      expanded to loop.for
             V
 ```C++
-func @main() {
+func @foo() {
   %array = rise.literal #rise.lit<array<4, !rise.int, [1,2,3,4]>>
-
   %init = rise.literal #rise.lit<int<0>>
 
+  %X = rise.I_promise_to_translate_you %array                       //TODO
+  %Y = rise.I_promise_to_translate_you %init                        //TODO
+  
   // reduceSeq: new ... (dt2 = f32, acc = %acc)
   %acc = alloc() : memref<1xf32>
-
-  %X = rise.I_promise_to_translate_you %array
-
-  %Y = rise.I_promise_to_translate_you %init
   linalg.fill(%acc, %Y) : memref<1xf32>, f32
 
   // reduceSeq: for ... (n = 4, i = %i)
@@ -40,12 +43,17 @@ func @main() {
     // reduceSeq: ... in@i
     %x2 = load %X[%i] : memref<4xf32>
     // reduceSeq: ... f(acc.rd)(in@i)r
-    %x3 = addf %x1, %x2 : f32
+    x3 = addf %x1, %x2                                
     // reduceSeq: ... f(acc.rd)(in@i)( acc.wr )
     store %x3, %acc[%cst_0] : memref<1xf32>
   }
 
   return
+}
+
+func @main() {
+  %output = alloc() : memref<1xf32>
+  call @foo(%output)
 }
 ```
             |
@@ -86,10 +94,15 @@ func @main() {
   // reduceSeq: ... out = acc
   %x4 = load %acc[%cst_0] : memref<1xf32>
   store %x4, %output[%cst_0] : memref<1xf32>
-  call @print_memref_0d_f32(%output) : (memref<1xf32>) -> ()
   return
 }
 
-func @print_memref_0d_f32(memref<1xf32>)
+
+func @main() {
+  %output = alloc() : memref<1xf32>
+  call @foo(%output)
+}
+
+func @print_memref_-1d_f32(memref<1xf32>)
 ```
 
