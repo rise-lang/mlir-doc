@@ -3,6 +3,7 @@
 ## Rise Dialect
 ### Design
 ### Lowering to imperative
+- [lowering strategy and concepts](lowering/lowering_strategy_and_concepts.md)
 - [lowering a simple reduction](lowering/simple_reduction_lowering.md)
 - [lowering a simple map](lowering/simple_map_lowering.md)
 - [outdated - lowering a simple reduction - example](lowering/old_reduce_lowering_to_imperative.md)
