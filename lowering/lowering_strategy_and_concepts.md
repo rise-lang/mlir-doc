@@ -19,15 +19,30 @@ program.
   operations according to [1].
 - Finally we erase the rise.fun operation
 
-#### Acct (maybe rename to ApplyT or so?)
+#### Acct(ApplyOp apply){...} - (maybe rename to ApplyT or so?)
 Invariants:
 - The **insertionPoint** of the rewriter is expected to be set before calling
   Acct. This function will only set the insertionPoint relative to the given
 one.
-- 
+
+Process:
+- Get the applied function (first operand of the given ApplyOp)
+- If it is another apply (i.e. partial application) we walk the applies until we find the applied function which is not an ApplyOp. In this process we also collect all other operands of the applies.
+- The applied function provides context about what to do with the collected operands. Depending on this we generate code (e.g. a loop.for for a rise.reduce) and call the ConT/AccT for specific(all?) operands.
+    - for rise.map (rise.apply %mapFun %lambda %array) we do:
+        ```
+        contArray   = ConT(%array)
+        lowerBound  = rewriter.create<ConstantIndexOp>(0)
+        upperBound  = rewriter.create<ConstantIndexOp>(getAttr(n))
+        step        = rewriter.create<ConstantIndexOp>(1)
+        forLoop     = rewriter.create<loop::ForOp>(lowerBound, upperBound, step)
+        load        = rewriter.create<std::LoadOp>(contArray, loopInductionVar)
+        contLambda  = AccT(%lambda)
+        store       = rewriter.store<std::StoreOp>(contArray, loopInductionVar)
+        ```
 
 
-#### ConT (maybe rename to PatternT or so?)
+#### ConT(mlir::Value contValue) {...} - (maybe rename to PatternT or so?)
 
 
 ## Open Questions
