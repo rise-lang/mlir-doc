@@ -41,6 +41,7 @@ func @array_times_2() {
     return
 }
     ```
+    
     ```
         |       Lowering to Imperative: mlir-opt map_add.mlir -convert-rise-to-imperative        
         |           Dialect Conversion: (rise)              -> (std x loop x linalg) 
@@ -77,6 +78,6 @@ module {
     return
   }
 }
-
+```
 interesting picture
 ![some image](https://user-images.githubusercontent.com/10148468/73613904-2f720a00-45c8-11ea-8265-1c856c02525b.png "")
