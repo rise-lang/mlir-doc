@@ -13,7 +13,7 @@
 
 
     Example
-    ```C++
+```C++
 func @print_memref_f32(memref<*xf32>)
 func @rise_fun(memref<4xf32>)
 func @array_times_2() {
@@ -40,9 +40,9 @@ func @array_times_2() {
     call @print_memref_f32(%print_me): (memref<*xf32>) -> ()
     return
 }
-    ```
+```
     
-    ```
+```
         |       Lowering to Imperative: mlir-opt map_add.mlir -convert-rise-to-imperative        
         |           Dialect Conversion: (rise)              -> (std x loop x linalg) 
         |           rise.fun                                -> @riseFun(): (memref) -> () ... call @riseFun
@@ -50,9 +50,9 @@ func @array_times_2() {
         |           rise.map ... rise.apply ... rise.apply  -> loop.for
         |           rise.lambda{rise.add}                   -> rise.bin_op ... rise.assign
         V
-    ```
+```
    
-    ```C++
+```C++
 module {
   func @rise_fun(%arg0: memref<4xf32>) {
     %0 = alloc() : memref<4xf32>
