@@ -35,7 +35,6 @@ func @array_times_2() {
     return
 }
 ```
-
 Mockup
             |       Lowering (almost) to imperative, but leaving intermediate ops inside
             |           Dialect Conversion: (rise)              -> (std x loop x linalg) 
@@ -75,8 +74,6 @@ module {
   }
 }
 ```
-
-
             |       Lowering to Imperative: mlir-opt reduce.mlir -convert-rise-to-imperative        
             |           Dialect Conversion: (rise)              -> (std x loop x linalg) 
             |           rise.fun                                -> @riseFun(): () -> (memref) ... call @riseFun
