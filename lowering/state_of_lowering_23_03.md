@@ -8,7 +8,7 @@
 - map map map map (...?) add
 - zip map fst/snd (projection)
 - zip map add 
-
+- reduce
 
 Do for the others as well.
 
@@ -322,17 +322,7 @@ Do for the others as well.
   }
 ```
 
-
-
-Questions/Comments for properly implementing reduce:
-
-- as the input and the acc are arrays of size 1 right now. I generate idx ops
-  for accessing them. (not done in the paper)
-    -> We could try to move from memref<1xf32> to memref<f32>
-
-
-Current state of reduce:
-
+Example: reduce add
 
 ```C++
     rise.fun "rise_fun" (%outArg:memref<1xf32>) {
@@ -373,22 +363,125 @@ Current state of reduce:
     %c4 = constant 4 : index
     %c1 = constant 1 : index
     loop.for %arg1 = %c0 to %c4 step %c1 {
-      %2 = "rise.idx"(%0, %arg1) : (memref<4xf32>, index) -> memref<f32>
-      %3 = "rise.idx"(%1, %c0) : (memref<1xf32>, index) -> memref<1xf32>
-      %4 = "rise.idx"(%1, %c0) : (memref<1xf32>, index) -> memref<f32>
-      %5 = "rise.bin_op"(%3, %2) : (memref<1xf32>, memref<f32>) -> f32
-      "rise.assign"(%5, %4) : (f32, memref<f32>) -> ()
-      %6 = load %1[%c0] : memref<1xf32>
-      %7 = load %0[%arg1] : memref<4xf32>
-      %8 = addf %6, %7 : f32
-      store %8, %1[%c0] : memref<1xf32>
+      %3 = load %1[%c0] : memref<1xf32>
+      %4 = load %0[%arg1] : memref<4xf32>
+      %5 = addf %3, %4 : f32
+      store %5, %1[%c0] : memref<1xf32>
     }
-    "rise.assign"(%3, %4) : (memref<1xf32>, memref<f32>) -> ()
+    %2 = load %1[%c0] : memref<1xf32>
+    store %2, %arg0[%c0] : memref<1xf32>
     return
   }
 ```
 
 
 
+Current problem: dot
+- AccT is started with last apply, hence with apply reduce
+- This means AccT of reduce gets %outArg as out argument. So reduce tries to
+  write to that.
+- As reduce is inside the loop of map, reduce should write to the tmp Array of
+  map (%0)
+- I don't yet understand how this is done in scala
 
+```C++
+    rise.fun "rise_fun" (%outArg:memref<4xf32>) {
 
+        //Arrays
+        %array0 = rise.literal #rise.lit<array<4, !rise.float, [5,5,5,5]>>
+        %array1 = rise.literal #rise.lit<array<4, !rise.float, [5,5,5,5]>>
+
+        //Zipping
+        %zipFun = rise.zip #rise.nat<4> #rise.float #rise.float
+        %zippedArrays = rise.apply %zipFun, %array0, %array1
+
+        //Multiply
+
+        %tupleMulFun = rise.lambda (%floatTuple) : !rise.fun<data<tuple<float, float>> -> data<float>> {
+            %fstFun = rise.fst #rise.float #rise.float
+               %sndFun = rise.snd #rise.float #rise.float
+
+               %fst = rise.apply %fstFun, %floatTuple
+              %snd = rise.apply %sndFun, %floatTuple
+
+              %mulFun = rise.mult #rise.float
+              %result = rise.apply %mulFun, %snd, %fst
+
+             rise.return %result : !rise.data<float>
+            }
+
+        %map10TuplesToInts = rise.map #rise.nat<4> #rise.tuple<float, float> #rise.float
+        %multipliedArray = rise.apply %map10TuplesToInts, %tupleMulFun, %zippedArrays
+
+        //Reduction
+        %reductionAdd = rise.lambda (%summand0, %summand1) : !rise.fun<data<float> -> fun<data<float> -> data<float>>> {
+            %addFun = rise.add #rise.float
+            %doubled = rise.apply %addFun, %summand0, %summand1
+            rise.return %doubled : !rise.data<float>
+        }
+        %initializer = rise.literal #rise.lit<float<0>>
+        %reduce10Ints = rise.reduce #rise.nat<4> #rise.float #rise.float
+        %result = rise.apply %reduce10Ints, %reductionAdd, %initializer, %multipliedArray
+
+        rise.return %result : !rise.data<float>
+    }
+```
+    
+```
+        |       Lowering to Intermediate
+        |           Dialect Conversion: (rise)              -> (std x loop x linalg) 
+        |           rise.fun                                -> @riseFun(): (memref) -> () ... call @riseFun
+        |           rise.literal                            -> alloc() : memref ... linalg.fill
+        |           rise.map ... rise.apply ... rise.apply  -> loop.for
+        |           rise.lambda{rise.add}                   -> rise.bin_op ... rise.assign
+        V
+```
+   
+```C++
+func @rise_fun(%arg0: memref<4xf32>) {
+:w    %0 = alloc() : memref<4xf32>
+    %1 = alloc() : memref<4xf32>
+    %cst = constant 5.000000e+00 : f32
+    linalg.fill(%1, %cst) : memref<4xf32>, f32
+    %2 = alloc() : memref<4xf32>
+    %cst_0 = constant 5.000000e+00 : f32
+    linalg.fill(%2, %cst_0) : memref<4xf32>, f32
+    %3 = "rise.codegen.zip"(%1, %2) : (memref<4xf32>, memref<4xf32>) -> memref<4xf32>
+    %c0 = constant 0 : index
+    %c4 = constant 4 : index
+    %c1 = constant 1 : index
+    loop.for %arg1 = %c0 to %c4 step %c1 {
+      %4 = "rise.codegen.idx"(%3, %arg1) : (memref<4xf32>, index) -> memref<f32>
+      %5 = "rise.codegen.idx"(%0, %arg1) : (memref<4xf32>, index) -> memref<f32>
+      %6 = "rise.codegen.snd"(%4) : (memref<f32>) -> f32
+      %7 = "rise.codegen.fst"(%4) : (memref<f32>) -> f32
+      %8 = "rise.codegen.bin_op"(%6, %7) {op = "mul"} : (f32, f32) -> f32
+      "rise.codegen.assign"(%8, %5) : (f32, memref<f32>) -> ()
+      %cst_1 = constant 0.000000e+00 : f32
+      %9 = alloc() : memref<1xf32>
+      linalg.fill(%9, %cst_1) : memref<1xf32>, f32
+      %c0_2 = constant 0 : index
+      %c4_3 = constant 4 : index
+      %c1_4 = constant 1 : index
+      loop.for %arg2 = %c0_2 to %c4_3 step %c1_4 {
+        %12 = "rise.codegen.idx"(%3, %arg2) : (memref<4xf32>, index) -> memref<f32>         //should be (%5, %arg2)...
+        %13 = "rise.codegen.idx"(%9, %c0_2) : (memref<1xf32>, index) -> memref<1xf32>
+        %14 = "rise.codegen.bin_op"(%13, %12) {op = "add"} : (memref<1xf32>, memref<f32>) -> f32
+        "rise.codegen.assign"(%14, %13) : (f32, memref<1xf32>) -> ()
+      }
+      %10 = "rise.codegen.idx"(%arg0, %c0_2) : (memref<4xf32>, index) -> memref<4xf32> //wrong: output here is wrong? has to write into 0 and with index inductionVar
+      %11 = "rise.codegen.idx"(%9, %c0_2) : (memref<1xf32>, index) -> memref<1xf32> //correct
+      "rise.codegen.assign"(%11, %10) : (memref<1xf32>, memref<4xf32>) -> () //correct
+    }
+    return
+  }
+  func @print_memref_f32(memref<*xf32>)
+  func @simple_add_tuples() {
+    %0 = alloc() : memref<4xf32>
+    call @rise_fun(%0) : (memref<4xf32>) -> ()
+    %1 = memref_cast %0 : memref<4xf32> to memref<*xf32>
+    call @print_memref_f32(%1) : (memref<*xf32>) -> ()
+    return
+  }
+}
+```
