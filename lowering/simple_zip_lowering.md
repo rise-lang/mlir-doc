@@ -35,8 +35,7 @@ func @array_times_2() {
     return
 }
 ```
-
-Mockup
+            Mockup
             |       Lowering (almost) to imperative, but leaving intermediate ops inside
             |           Dialect Conversion: (rise)              -> (std x loop x linalg) 
             |           rise.fun                                -> @riseFun(): () -> (memref) ... call @riseFun
@@ -44,6 +43,7 @@ Mockup
             |           rise.map ... rise.apply ... rise.apply  -> loop.for
             |           
             V
+            
 ```C++
 module {
   func @rise_fun(%arg0: memref<4xf32>) {
@@ -75,8 +75,6 @@ module {
   }
 }
 ```
-
-
             |       Lowering to Imperative: mlir-opt reduce.mlir -convert-rise-to-imperative        
             |           Dialect Conversion: (rise)              -> (std x loop x linalg) 
             |           rise.fun                                -> @riseFun(): () -> (memref) ... call @riseFun
