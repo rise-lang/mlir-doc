@@ -275,6 +275,31 @@ Do for the others as well.
         |           rise.lambda{rise.add}                   -> rise.bin_op ... rise.assign
         V
 ```
+
+```C++
+  func @rise_fun(%arg0: memref<4xf32>) {
+    %0 = alloc() : memref<4xf32>
+    %cst = constant 5.000000e+00 : f32
+    linalg.fill(%0, %cst) : memref<4xf32>, f32
+    %1 = alloc() : memref<4xf32>
+    %cst_0 = constant 1.000000e+01 : f32
+    linalg.fill(%1, %cst_0) : memref<4xf32>, f32
+    %2 = "rise.zip_interm"(%0, %1) : (memref<4xf32>, memref<4xf32>) -> memref<4xf32>
+    %c0 = constant 0 : index
+    %c4 = constant 4 : index
+    %c1 = constant 1 : index
+    loop.for %arg1 = %c0 to %c4 step %c1 {
+      %3 = "rise.idx"(%2, %arg1) : (memref<4xf32>, index) -> memref<f32>
+      %4 = "rise.idx"(%arg0, %arg1) : (memref<4xf32>, index) -> memref<f32>
+      %5 = "rise.snd_interm"(%3) : (memref<f32>) -> f32
+      %6 = "rise.fst_interm"(%3) : (memref<f32>) -> f32
+      %7 = "rise.bin_op"(%5, %6) : (f32, f32) -> f32
+      "rise.assign"(%7, %4) : (f32, memref<f32>) -> ()
+    }
+    return
+  }
+```
+
    
 ```C++
   func @rise_fun(%arg0: memref<4xf32>) {
