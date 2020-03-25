@@ -524,3 +524,147 @@ Unranked Memref rank = 1 descriptor@ = 0x7ffd81181870
 Memref base@ = 0x55883b438ec0 rank = 1 offset = 0 sizes = [1] strides = [1] data = 
 [100]
 ```
+
+
+working on mm:
+
+```C++
+    rise.fun "rise_fun" (%outArg:memref<4x4xf32>) {
+        //Arrays
+        %A = rise.literal #rise.lit<array<4.4, !rise.float, [[5,5,5,5], [5,5,5,5], [5,5,5,5], [5,5,5,5]]>>
+        %B = rise.literal #rise.lit<array<4.4, !rise.float, [[5,5,5,5], [5,5,5,5], [5,5,5,5], [5,5,5,5]]>>
+
+
+        %m1fun = rise.lambda (%arow) : !rise.fun<data<array<4, float>> -> data<array<4, float>>> {
+            %m2fun = rise.lambda (%bcol) : !rise.fun<data<array<4, float>> -> data<array<4, float>>> {
+
+                //Zipping
+                %zipFun = rise.zip #rise.nat<4> #rise.float #rise.float
+                %zippedArrays = rise.apply %zipFun, %arow, %bcol
+
+                //Multiply
+                %tupleMulFun = rise.lambda (%floatTuple) : !rise.fun<data<tuple<float, float>> -> data<float>> {
+                    %fstFun = rise.fst #rise.float #rise.float
+                       %sndFun = rise.snd #rise.float #rise.float
+
+                       %fst = rise.apply %fstFun, %floatTuple
+                      %snd = rise.apply %sndFun, %floatTuple
+
+                      %mulFun = rise.mult #rise.float
+                      %result = rise.apply %mulFun, %snd, %fst
+
+                     rise.return %result : !rise.data<float>
+                }
+                %map10TuplesToInts = rise.map #rise.nat<4> #rise.tuple<float, float> #rise.float
+                %multipliedArray = rise.apply %map10TuplesToInts, %tupleMulFun, %zippedArrays
+
+                //Reduction
+                %reductionAdd = rise.lambda (%summand0, %summand1) : !rise.fun<data<float> -> fun<data<float> -> data<float>>> {
+                    %addFun = rise.add #rise.float
+                    %doubled = rise.apply %addFun, %summand0, %summand1
+                    rise.return %doubled : !rise.data<float>
+                }
+                %initializer = rise.literal #rise.lit<float<0>>
+                %reduce10Ints = rise.reduce #rise.nat<4> #rise.float #rise.float
+                %result = rise.apply %reduce10Ints, %reductionAdd, %initializer, %multipliedArray
+
+                rise.return %result : !rise.data<float>
+            }
+            %m2 = rise.map #rise.nat<4> #rise.array<4, float> #rise.array<4, float>
+            %result = rise.apply %m2, %m2fun, %B
+            rise.return %result : !rise.data<array<4, array<4, float>>>
+        }
+        %m1 = rise.map #rise.nat<4> #rise.array<4, !rise.float> #rise.array<4, !rise.float>
+        %result = rise.apply %m1, %m1fun, %A
+    }
+```
+ 
+```
+        |       Lowering to Intermediate
+        |           Dialect Conversion: (rise)              -> (std x loop x linalg) 
+        |           rise.fun                                -> @riseFun(): (memref) -> () ... call @riseFun
+        |           rise.literal                            -> alloc() : memref ... linalg.fill
+        |           rise.map ... rise.apply                 -> loop.for
+        |           rise.reduce ... rise.apply              -> loop.for
+        |           rise.lambda{rise.add}                   -> rise.bin_op {"add"}... rise.assign
+        |           rise.labda{rise.mul}                    -> rise.bin_op {"mul} ... rise.assign
+        V
+```
+  
+```C++
+func @rise_fun(%arg0: memref<4x4xf32>) {
+    %0 = alloc() : memref<4x4xf32>
+    %cst = constant 5.000000e+00 : f32
+    linalg.fill(%0, %cst) : memref<4x4xf32>, f32
+    %c0 = constant 0 : index
+    %c4 = constant 4 : index
+    %c1 = constant 1 : index
+    loop.for %arg1 = %c0 to %c4 step %c1 {
+      %1 = "rise.codegen.idx"(%0, %arg1) : (memref<4x4xf32>, index) -> memref<4xf32>
+      %2 = "rise.codegen.idx"(%arg0, %arg1) : (memref<4x4xf32>, index) -> memref<4xf32>
+      %3 = alloc() : memref<4x4xf32>
+      %cst_0 = constant 5.000000e+00 : f32
+      linalg.fill(%3, %cst_0) : memref<4x4xf32>, f32
+      %c0_1 = constant 0 : index
+      %c4_2 = constant 4 : index
+      %c1_3 = constant 1 : index
+      loop.for %arg2 = %c0_1 to %c4_2 step %c1_3 {
+        %4 = "rise.codegen.idx"(%3, %arg2) : (memref<4x4xf32>, index) -> memref<4xf32>
+        %5 = "rise.codegen.idx"(%2, %arg2) : (memref<4xf32>, index) -> memref<4xf32>
+        %6 = alloc() : memref<4xf32>
+        %7 = "rise.codegen.zip"(%1, %4) : (memref<4xf32>, memref<4xf32>) -> memref<4xf32>
+        %c0_4 = constant 0 : index
+        %c4_5 = constant 4 : index
+        %c1_6 = constant 1 : index
+        loop.for %arg3 = %c0_4 to %c4_5 step %c1_6 {
+          %11 = "rise.codegen.idx"(%7, %arg3) : (memref<4xf32>, index) -> memref<f32>
+          %12 = "rise.codegen.idx"(%6, %arg3) : (memref<4xf32>, index) -> memref<f32>
+          %13 = "rise.codegen.snd"(%11) : (memref<f32>) -> f32
+          %14 = "rise.codegen.fst"(%11) : (memref<f32>) -> f32
+          %15 = "rise.codegen.bin_op"(%13, %14) {op = "mul"} : (f32, f32) -> f32
+          "rise.codegen.assign"(%15, %12) : (f32, memref<f32>) -> ()
+        }
+        %cst_7 = constant 0.000000e+00 : f32
+        %8 = alloc() : memref<1xf32>
+        linalg.fill(%8, %cst_7) : memref<1xf32>, f32
+        %c0_8 = constant 0 : index
+        %c4_9 = constant 4 : index
+        %c1_10 = constant 1 : index
+        loop.for %arg3 = %c0_8 to %c4_9 step %c1_10 {
+          %11 = "rise.codegen.idx"(%6, %arg3) : (memref<4xf32>, index) -> memref<f32>
+          %12 = "rise.codegen.idx"(%8, %c0_8) : (memref<1xf32>, index) -> memref<1xf32>
+          %13 = "rise.codegen.bin_op"(%12, %11) {op = "add"} : (memref<1xf32>, memref<f32>) -> f32
+          "rise.codegen.assign"(%13, %12) : (f32, memref<1xf32>) -> ()
+        }
+        %9 = "rise.codegen.idx"(%5, %c0_8) : (memref<4xf32>, index) -> memref<4xf32>
+        %10 = "rise.codegen.idx"(%8, %c0_8) : (memref<1xf32>, index) -> memref<1xf32>
+        "rise.codegen.assign"(%10, %9) : (memref<1xf32>, memref<4xf32>) -> ()
+      }
+    }
+    return
+  }
+```
+
+```
+        |       Lowering to Imperative
+        |           Dialect Conversion: (rise)              -> (std x loop x linalg) 
+        |           rise.fun                                -> @riseFun(): (memref) -> () ... call @riseFun
+        |           rise.literal                            -> alloc() : memref ... linalg.fill
+        |           rise.map ... rise.apply                 -> loop.for
+        |           rise.reduce ... rise.apply              -> loop.for
+        |           rise.lambda{rise.add}                   -> rise.bin_op {"add"}... rise.assign
+        |           rise.labda{rise.mul}                    -> rise.bin_op {"mul} ... rise.assign
+        V
+```
+
+ 
+```C++
+
+```
+
+```Bash
+mlir-opt mm.mlir -convert-rise-to-imperative -convert-linalg-to-loops -convert-loop-to-std -convert-std-to-llvm | mlir-cpu-runner -e mm -entry-point-result=void -shared-libs=libmlir_runner_utils.so
+
+```
+
+
