@@ -10,6 +10,7 @@
 - zip map add 
 - reduce
 - dot
+- mm
 
     Example: map add
 ```C++
@@ -526,7 +527,11 @@ Memref base@ = 0x55883b438ec0 rank = 1 offset = 0 sizes = [1] strides = [1] data
 ```
 
 
-working on mm:
+mm:
+Caveats: 
+- the code for the 2nd literal is generated inside the first loop.
+- I still struggle with generating different literals. I will work on using
+  outside inputs in our rise.fun next.
 
 ```C++
     rise.fun "rise_fun" (%outArg:memref<4x4xf32>) {
@@ -592,7 +597,7 @@ working on mm:
 ```
   
 ```C++
-func @rise_fun(%arg0: memref<4x4xf32>) {
+  func @rise_fun(%arg0: memref<4x4xf32>) {
     %0 = alloc() : memref<4x4xf32>
     %cst = constant 5.000000e+00 : f32
     linalg.fill(%0, %cst) : memref<4x4xf32>, f32
@@ -659,12 +664,59 @@ func @rise_fun(%arg0: memref<4x4xf32>) {
 
  
 ```C++
-
+  func @rise_fun(%arg0: memref<4x4xf32>) {
+    %0 = alloc() : memref<4x4xf32>
+    %cst = constant 5.000000e+00 : f32
+    linalg.fill(%0, %cst) : memref<4x4xf32>, f32
+    %c0 = constant 0 : index
+    %c4 = constant 4 : index
+    %c1 = constant 1 : index
+    loop.for %arg1 = %c0 to %c4 step %c1 {
+      %1 = alloc() : memref<4x4xf32>
+      %cst_0 = constant 5.000000e+00 : f32
+      linalg.fill(%1, %cst_0) : memref<4x4xf32>, f32
+      %c0_1 = constant 0 : index
+      %c4_2 = constant 4 : index
+      %c1_3 = constant 1 : index
+      loop.for %arg2 = %c0_1 to %c4_2 step %c1_3 {
+        %2 = alloc() : memref<4xf32>
+        %c0_4 = constant 0 : index
+        %c4_5 = constant 4 : index
+        %c1_6 = constant 1 : index
+        loop.for %arg3 = %c0_4 to %c4_5 step %c1_6 {
+          %5 = load %1[%arg3, %arg2] : memref<4x4xf32>
+          %6 = load %0[%arg3, %arg1] : memref<4x4xf32>
+          %7 = mulf %5, %6 : f32
+          store %7, %2[%arg3] : memref<4xf32>
+        }
+        %cst_7 = constant 0.000000e+00 : f32
+        %3 = alloc() : memref<1xf32>
+        linalg.fill(%3, %cst_7) : memref<1xf32>, f32
+        %c0_8 = constant 0 : index
+        %c4_9 = constant 4 : index
+        %c1_10 = constant 1 : index
+        loop.for %arg3 = %c0_8 to %c4_9 step %c1_10 {
+          %5 = load %3[%c0_8] : memref<1xf32>
+          %6 = load %2[%arg3] : memref<4xf32>
+          %7 = addf %5, %6 : f32
+          store %7, %3[%c0_8] : memref<1xf32>
+        }
+        %4 = load %3[%c0_8] : memref<1xf32>
+        store %4, %arg0[%arg2, %arg1] : memref<4x4xf32>
+      }
+    }
+    return
+  }
 ```
 
 ```Bash
 mlir-opt mm.mlir -convert-rise-to-imperative -convert-linalg-to-loops -convert-loop-to-std -convert-std-to-llvm | mlir-cpu-runner -e mm -entry-point-result=void -shared-libs=libmlir_runner_utils.so
-
+Unranked Memref rank = 2 descriptor@ = 0x7ffc9c9c8470
+Memref base@ = 0x55754f6608f0 rank = 2 offset = 0 sizes = [4, 4] strides = [4, 1] data = 
+[[100,   100,   100,   100], 
+ [100,   100,   100,   100], 
+ [100,   100,   100,   100], 
+ [100,   100,   100,   100]]
 ```
 
 
