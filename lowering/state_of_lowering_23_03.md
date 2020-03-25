@@ -9,10 +9,7 @@
 - zip map fst/snd (projection)
 - zip map add 
 - reduce
-
-Do for the others as well.
-
-
+- dot
 
     Example: map add
 ```C++
@@ -236,7 +233,7 @@ Do for the others as well.
 ```
 
 
-    Example: zip map add (adding two arrays)
+    Example: zip map add (vector addition)
 
 ```C++
     rise.fun "rise_fun" (%outArg:memref<4xf32>) {
@@ -376,14 +373,7 @@ Example: reduce add
 
 
 
-Current problem: dot
-- AccT is started with last apply, hence with apply reduce
-- This means AccT of reduce gets %outArg as out argument. So reduce tries to
-  write to that.
-- As reduce is inside the loop of map, reduce should write to the tmp Array of
-  map (%0)
-- I don't yet understand how this is done in scala
-
+Example: dot
 ```C++
     rise.fun "rise_fun" (%outArg:memref<4xf32>) {
 
@@ -432,14 +422,16 @@ Current problem: dot
         |           Dialect Conversion: (rise)              -> (std x loop x linalg) 
         |           rise.fun                                -> @riseFun(): (memref) -> () ... call @riseFun
         |           rise.literal                            -> alloc() : memref ... linalg.fill
-        |           rise.map ... rise.apply ... rise.apply  -> loop.for
-        |           rise.lambda{rise.add}                   -> rise.bin_op ... rise.assign
+        |           rise.map ... rise.apply                 -> loop.for
+        |           rise.reduce ... rise.apply              -> loop.for
+        |           rise.lambda{rise.add}                   -> rise.bin_op {"add"}... rise.assign
+        |           rise.labda{rise.mul}                    -> rise.bin_op {"mul} ... rise.assign
         V
 ```
-   
+  
 ```C++
-func @rise_fun(%arg0: memref<4xf32>) {
-:w    %0 = alloc() : memref<4xf32>
+  func @rise_fun(%arg0: memref<1xf32>) {
+    %0 = alloc() : memref<4xf32>
     %1 = alloc() : memref<4xf32>
     %cst = constant 5.000000e+00 : f32
     linalg.fill(%1, %cst) : memref<4xf32>, f32
@@ -451,37 +443,84 @@ func @rise_fun(%arg0: memref<4xf32>) {
     %c4 = constant 4 : index
     %c1 = constant 1 : index
     loop.for %arg1 = %c0 to %c4 step %c1 {
-      %4 = "rise.codegen.idx"(%3, %arg1) : (memref<4xf32>, index) -> memref<f32>
-      %5 = "rise.codegen.idx"(%0, %arg1) : (memref<4xf32>, index) -> memref<f32>
-      %6 = "rise.codegen.snd"(%4) : (memref<f32>) -> f32
-      %7 = "rise.codegen.fst"(%4) : (memref<f32>) -> f32
-      %8 = "rise.codegen.bin_op"(%6, %7) {op = "mul"} : (f32, f32) -> f32
-      "rise.codegen.assign"(%8, %5) : (f32, memref<f32>) -> ()
-      %cst_1 = constant 0.000000e+00 : f32
-      %9 = alloc() : memref<1xf32>
-      linalg.fill(%9, %cst_1) : memref<1xf32>, f32
-      %c0_2 = constant 0 : index
-      %c4_3 = constant 4 : index
-      %c1_4 = constant 1 : index
-      loop.for %arg2 = %c0_2 to %c4_3 step %c1_4 {
-        %12 = "rise.codegen.idx"(%3, %arg2) : (memref<4xf32>, index) -> memref<f32>         //should be (%5, %arg2)...
-        %13 = "rise.codegen.idx"(%9, %c0_2) : (memref<1xf32>, index) -> memref<1xf32>
-        %14 = "rise.codegen.bin_op"(%13, %12) {op = "add"} : (memref<1xf32>, memref<f32>) -> f32
-        "rise.codegen.assign"(%14, %13) : (f32, memref<1xf32>) -> ()
-      }
-      %10 = "rise.codegen.idx"(%arg0, %c0_2) : (memref<4xf32>, index) -> memref<4xf32> //wrong: output here is wrong? has to write into 0 and with index inductionVar
-      %11 = "rise.codegen.idx"(%9, %c0_2) : (memref<1xf32>, index) -> memref<1xf32> //correct
-      "rise.codegen.assign"(%11, %10) : (memref<1xf32>, memref<4xf32>) -> () //correct
+      %7 = "rise.codegen.idx"(%3, %arg1) : (memref<4xf32>, index) -> memref<f32>
+      %8 = "rise.codegen.idx"(%0, %arg1) : (memref<4xf32>, index) -> memref<f32>
+      %9 = "rise.codegen.snd"(%7) : (memref<f32>) -> f32
+      %10 = "rise.codegen.fst"(%7) : (memref<f32>) -> f32
+      %11 = "rise.codegen.bin_op"(%9, %10) {op = "mul"} : (f32, f32) -> f32
+      "rise.codegen.assign"(%11, %8) : (f32, memref<f32>) -> ()
     }
+    %cst_1 = constant 0.000000e+00 : f32
+    %4 = alloc() : memref<1xf32>
+    linalg.fill(%4, %cst_1) : memref<1xf32>, f32
+    %c0_2 = constant 0 : index
+    %c4_3 = constant 4 : index
+    %c1_4 = constant 1 : index
+    loop.for %arg1 = %c0_2 to %c4_3 step %c1_4 {
+      %7 = "rise.codegen.idx"(%0, %arg1) : (memref<4xf32>, index) -> memref<f32>
+      %8 = "rise.codegen.idx"(%4, %c0_2) : (memref<1xf32>, index) -> memref<1xf32>
+      %9 = "rise.codegen.bin_op"(%8, %7) {op = "add"} : (memref<1xf32>, memref<f32>) -> f32
+      "rise.codegen.assign"(%9, %8) : (f32, memref<1xf32>) -> ()
+    }
+    %5 = "rise.codegen.idx"(%arg0, %c0_2) : (memref<1xf32>, index) -> memref<1xf32>
+    %6 = "rise.codegen.idx"(%4, %c0_2) : (memref<1xf32>, index) -> memref<1xf32>
+    "rise.codegen.assign"(%6, %5) : (memref<1xf32>, memref<1xf32>) -> ()
     return
   }
-  func @print_memref_f32(memref<*xf32>)
-  func @simple_add_tuples() {
+```
+
+```
+        |       Lowering to Imperative
+        |           Dialect Conversion: (rise)              -> (std x loop x linalg) 
+        |           rise.fun                                -> @riseFun(): (memref) -> () ... call @riseFun
+        |           rise.literal                            -> alloc() : memref ... linalg.fill
+        |           rise.map ... rise.apply                 -> loop.for
+        |           rise.reduce ... rise.apply              -> loop.for
+        |           rise.lambda{rise.add}                   -> rise.bin_op {"add"}... rise.assign
+        |           rise.labda{rise.mul}                    -> rise.bin_op {"mul} ... rise.assign
+        V
+```
+
+ 
+```C++
+  func @rise_fun(%arg0: memref<1xf32>) {
     %0 = alloc() : memref<4xf32>
-    call @rise_fun(%0) : (memref<4xf32>) -> ()
-    %1 = memref_cast %0 : memref<4xf32> to memref<*xf32>
-    call @print_memref_f32(%1) : (memref<*xf32>) -> ()
+    %1 = alloc() : memref<4xf32>
+    %cst = constant 5.000000e+00 : f32
+    linalg.fill(%1, %cst) : memref<4xf32>, f32
+    %2 = alloc() : memref<4xf32>
+    %cst_0 = constant 5.000000e+00 : f32
+    linalg.fill(%2, %cst_0) : memref<4xf32>, f32
+    %c0 = constant 0 : index
+    %c4 = constant 4 : index
+    %c1 = constant 1 : index
+    loop.for %arg1 = %c0 to %c4 step %c1 {
+      %5 = load %2[%arg1] : memref<4xf32>
+      %6 = load %1[%arg1] : memref<4xf32>
+      %7 = mulf %5, %6 : f32
+      store %7, %0[%arg1] : memref<4xf32>
+    }
+    %cst_1 = constant 0.000000e+00 : f32
+    %3 = alloc() : memref<1xf32>
+    linalg.fill(%3, %cst_1) : memref<1xf32>, f32
+    %c0_2 = constant 0 : index
+    %c4_3 = constant 4 : index
+    %c1_4 = constant 1 : index
+    loop.for %arg1 = %c0_2 to %c4_3 step %c1_4 {
+      %5 = load %3[%c0_2] : memref<1xf32>
+      %6 = load %0[%arg1] : memref<4xf32>
+      %7 = addf %5, %6 : f32
+      store %7, %3[%c0_2] : memref<1xf32>
+    }
+    %4 = load %3[%c0_2] : memref<1xf32>
+    store %4, %arg0[%c0_2] : memref<1xf32>
     return
   }
-}
+```
+
+```Bash
+mlir-opt dot.mlir -convert-rise-to-imperative -convert-linalg-to-loops -convert-loop-to-std -convert-std-to-llvm | mlir-cpu-runner -e simple_dot -entry-point-result=void -shared-libs=libmlir_runner_utils.so
+Unranked Memref rank = 1 descriptor@ = 0x7ffd81181870
+Memref base@ = 0x55883b438ec0 rank = 1 offset = 0 sizes = [1] strides = [1] data = 
+[100]
 ```
