@@ -12,10 +12,13 @@
 - dot
 - mm
 
+- We can now take inputs to our functions from outside.
+- casting an outside input to our type system is accomplished with rise.in
+
     Example: map add
 ```C++
-    rise.fun "rise_fun" (%outArg:memref<4xf32>) {
-        %array = rise.literal #rise.lit<array<4, !rise.float, [5,5,5,5]>>
+    rise.fun "rise_fun" (%outArg:memref<4xf32>, %in:memref<4xf32>) {
+        %array = rise.in %in : !rise.data<array<4, float>>
         %doubleFun = rise.lambda (%summand) : !rise.fun<data<float> -> data<float>> {
             %addFun = rise.add #rise.float
             %doubled = rise.apply %addFun, %summand, %summand
@@ -39,18 +42,15 @@
 ```
    
 ```C++
-  func @rise_fun(%arg0: memref<4xf32>) {
-    %0 = alloc() : memref<4xf32>
-    %cst = constant 5.000000e+00 : f32
-    linalg.fill(%0, %cst) : memref<4xf32>, f32
+  func @rise_fun(%arg0: memref<4xf32>, %arg1: memref<4xf32>) {
     %c0 = constant 0 : index
     %c4 = constant 4 : index
     %c1 = constant 1 : index
-    loop.for %arg1 = %c0 to %c4 step %c1 {
-      %1 = load %0[%arg1] : memref<4xf32>
-      %2 = load %0[%arg1] : memref<4xf32>
-      %3 = addf %1, %2 : f32
-      store %3, %arg0[%arg1] : memref<4xf32>
+    loop.for %arg2 = %c0 to %c4 step %c1 {
+      %0 = load %arg1[%arg2] : memref<4xf32>
+      %1 = load %arg1[%arg2] : memref<4xf32>
+      %2 = addf %0, %1 : f32
+      store %2, %arg0[%arg2] : memref<4xf32>
     }
     return
   }
@@ -534,11 +534,10 @@ Caveats:
   outside inputs in our rise.fun next.
 
 ```C++
-    rise.fun "rise_fun" (%outArg:memref<4x4xf32>) {
+    rise.fun "rise_fun" (%outArg:memref<4x4xf32>, %inA:memref<4x4xf32>, %inB:memref<4x4xf32>) {
         //Arrays
-        %A = rise.literal #rise.lit<array<4.4, !rise.float, [[5,5,5,5], [5,5,5,5], [5,5,5,5], [5,5,5,5]]>>
-        %B = rise.literal #rise.lit<array<4.4, !rise.float, [[5,5,5,5], [5,5,5,5], [5,5,5,5], [5,5,5,5]]>>
-
+        %A = rise.in %inA : !rise.data<array<4, array<4, float>>>
+        %B = rise.in %inB : !rise.data<array<4, array<4, float>>>
 
         %m1fun = rise.lambda (%arow) : !rise.fun<data<array<4, float>> -> data<array<4, float>>> {
             %m2fun = rise.lambda (%bcol) : !rise.fun<data<array<4, float>> -> data<array<4, float>>> {
@@ -597,53 +596,47 @@ Caveats:
 ```
   
 ```C++
-  func @rise_fun(%arg0: memref<4x4xf32>) {
-    %0 = alloc() : memref<4x4xf32>
-    %cst = constant 5.000000e+00 : f32
-    linalg.fill(%0, %cst) : memref<4x4xf32>, f32
+  func @rise_fun(%arg0: memref<4x4xf32>, %arg1: memref<4x4xf32>, %arg2: memref<4x4xf32>) {
     %c0 = constant 0 : index
     %c4 = constant 4 : index
     %c1 = constant 1 : index
-    loop.for %arg1 = %c0 to %c4 step %c1 {
-      %1 = "rise.codegen.idx"(%0, %arg1) : (memref<4x4xf32>, index) -> memref<4xf32>
-      %2 = "rise.codegen.idx"(%arg0, %arg1) : (memref<4x4xf32>, index) -> memref<4xf32>
-      %3 = alloc() : memref<4x4xf32>
-      %cst_0 = constant 5.000000e+00 : f32
-      linalg.fill(%3, %cst_0) : memref<4x4xf32>, f32
-      %c0_1 = constant 0 : index
-      %c4_2 = constant 4 : index
-      %c1_3 = constant 1 : index
-      loop.for %arg2 = %c0_1 to %c4_2 step %c1_3 {
-        %4 = "rise.codegen.idx"(%3, %arg2) : (memref<4x4xf32>, index) -> memref<4xf32>
-        %5 = "rise.codegen.idx"(%2, %arg2) : (memref<4xf32>, index) -> memref<4xf32>
-        %6 = alloc() : memref<4xf32>
-        %7 = "rise.codegen.zip"(%1, %4) : (memref<4xf32>, memref<4xf32>) -> memref<4xf32>
-        %c0_4 = constant 0 : index
-        %c4_5 = constant 4 : index
-        %c1_6 = constant 1 : index
-        loop.for %arg3 = %c0_4 to %c4_5 step %c1_6 {
-          %11 = "rise.codegen.idx"(%7, %arg3) : (memref<4xf32>, index) -> memref<f32>
-          %12 = "rise.codegen.idx"(%6, %arg3) : (memref<4xf32>, index) -> memref<f32>
-          %13 = "rise.codegen.snd"(%11) : (memref<f32>) -> f32
-          %14 = "rise.codegen.fst"(%11) : (memref<f32>) -> f32
-          %15 = "rise.codegen.bin_op"(%13, %14) {op = "mul"} : (f32, f32) -> f32
-          "rise.codegen.assign"(%15, %12) : (f32, memref<f32>) -> ()
+    loop.for %arg3 = %c0 to %c4 step %c1 {
+      %0 = "rise.codegen.idx"(%arg1, %arg3) : (memref<4x4xf32>, index) -> memref<4xf32>
+      %1 = "rise.codegen.idx"(%arg0, %arg3) : (memref<4x4xf32>, index) -> memref<4xf32>
+      %c0_0 = constant 0 : index
+      %c4_1 = constant 4 : index
+      %c1_2 = constant 1 : index
+      loop.for %arg4 = %c0_0 to %c4_1 step %c1_2 {
+        %2 = "rise.codegen.idx"(%arg2, %arg4) : (memref<4x4xf32>, index) -> memref<4xf32>
+        %3 = "rise.codegen.idx"(%1, %arg4) : (memref<4xf32>, index) -> memref<4xf32>
+        %4 = alloc() : memref<4xf32>
+        %5 = "rise.codegen.zip"(%0, %2) : (memref<4xf32>, memref<4xf32>) -> memref<4xf32>
+        %c0_3 = constant 0 : index
+        %c4_4 = constant 4 : index
+        %c1_5 = constant 1 : index
+        loop.for %arg5 = %c0_3 to %c4_4 step %c1_5 {
+          %9 = "rise.codegen.idx"(%5, %arg5) : (memref<4xf32>, index) -> memref<f32>
+          %10 = "rise.codegen.idx"(%4, %arg5) : (memref<4xf32>, index) -> memref<f32>
+          %11 = "rise.codegen.snd"(%9) : (memref<f32>) -> f32
+          %12 = "rise.codegen.fst"(%9) : (memref<f32>) -> f32
+          %13 = "rise.codegen.bin_op"(%11, %12) {op = "mul"} : (f32, f32) -> f32
+          "rise.codegen.assign"(%13, %10) : (f32, memref<f32>) -> ()
         }
-        %cst_7 = constant 0.000000e+00 : f32
-        %8 = alloc() : memref<1xf32>
-        linalg.fill(%8, %cst_7) : memref<1xf32>, f32
-        %c0_8 = constant 0 : index
-        %c4_9 = constant 4 : index
-        %c1_10 = constant 1 : index
-        loop.for %arg3 = %c0_8 to %c4_9 step %c1_10 {
-          %11 = "rise.codegen.idx"(%6, %arg3) : (memref<4xf32>, index) -> memref<f32>
-          %12 = "rise.codegen.idx"(%8, %c0_8) : (memref<1xf32>, index) -> memref<1xf32>
-          %13 = "rise.codegen.bin_op"(%12, %11) {op = "add"} : (memref<1xf32>, memref<f32>) -> f32
-          "rise.codegen.assign"(%13, %12) : (f32, memref<1xf32>) -> ()
+        %cst = constant 0.000000e+00 : f32
+        %6 = alloc() : memref<1xf32>
+        linalg.fill(%6, %cst) : memref<1xf32>, f32
+        %c0_6 = constant 0 : index
+        %c4_7 = constant 4 : index
+        %c1_8 = constant 1 : index
+        loop.for %arg5 = %c0_6 to %c4_7 step %c1_8 {
+          %9 = "rise.codegen.idx"(%4, %arg5) : (memref<4xf32>, index) -> memref<f32>
+          %10 = "rise.codegen.idx"(%6, %c0_6) : (memref<1xf32>, index) -> memref<1xf32>
+          %11 = "rise.codegen.bin_op"(%10, %9) {op = "add"} : (memref<1xf32>, memref<f32>) -> f32
+          "rise.codegen.assign"(%11, %10) : (f32, memref<1xf32>) -> ()
         }
-        %9 = "rise.codegen.idx"(%5, %c0_8) : (memref<4xf32>, index) -> memref<4xf32>
-        %10 = "rise.codegen.idx"(%8, %c0_8) : (memref<1xf32>, index) -> memref<1xf32>
-        "rise.codegen.assign"(%10, %9) : (memref<1xf32>, memref<4xf32>) -> ()
+        %7 = "rise.codegen.idx"(%3, %c0_6) : (memref<4xf32>, index) -> memref<4xf32>
+        %8 = "rise.codegen.idx"(%6, %c0_6) : (memref<1xf32>, index) -> memref<1xf32>
+        "rise.codegen.assign"(%8, %7) : (memref<1xf32>, memref<4xf32>) -> ()
       }
     }
     return
@@ -664,45 +657,39 @@ Caveats:
 
  
 ```C++
-  func @rise_fun(%arg0: memref<4x4xf32>) {
-    %0 = alloc() : memref<4x4xf32>
-    %cst = constant 5.000000e+00 : f32
-    linalg.fill(%0, %cst) : memref<4x4xf32>, f32
+    func @rise_fun(%arg0: memref<4x4xf32>, %arg1: memref<4x4xf32>, %arg2: memref<4x4xf32>) {
     %c0 = constant 0 : index
     %c4 = constant 4 : index
     %c1 = constant 1 : index
-    loop.for %arg1 = %c0 to %c4 step %c1 {
-      %1 = alloc() : memref<4x4xf32>
-      %cst_0 = constant 5.000000e+00 : f32
-      linalg.fill(%1, %cst_0) : memref<4x4xf32>, f32
-      %c0_1 = constant 0 : index
-      %c4_2 = constant 4 : index
-      %c1_3 = constant 1 : index
-      loop.for %arg2 = %c0_1 to %c4_2 step %c1_3 {
-        %2 = alloc() : memref<4xf32>
-        %c0_4 = constant 0 : index
-        %c4_5 = constant 4 : index
-        %c1_6 = constant 1 : index
-        loop.for %arg3 = %c0_4 to %c4_5 step %c1_6 {
-          %5 = load %1[%arg3, %arg2] : memref<4x4xf32>
-          %6 = load %0[%arg3, %arg1] : memref<4x4xf32>
-          %7 = mulf %5, %6 : f32
-          store %7, %2[%arg3] : memref<4xf32>
+    loop.for %arg3 = %c0 to %c4 step %c1 {
+      %c0_0 = constant 0 : index
+      %c4_1 = constant 4 : index
+      %c1_2 = constant 1 : index
+      loop.for %arg4 = %c0_0 to %c4_1 step %c1_2 {
+        %0 = alloc() : memref<4xf32>
+        %c0_3 = constant 0 : index
+        %c4_4 = constant 4 : index
+        %c1_5 = constant 1 : index
+        loop.for %arg5 = %c0_3 to %c4_4 step %c1_5 {
+          %3 = load %arg2[%arg5, %arg4] : memref<4x4xf32>
+          %4 = load %arg1[%arg5, %arg3] : memref<4x4xf32>
+          %5 = mulf %3, %4 : f32
+          store %5, %0[%arg5] : memref<4xf32>
         }
-        %cst_7 = constant 0.000000e+00 : f32
-        %3 = alloc() : memref<1xf32>
-        linalg.fill(%3, %cst_7) : memref<1xf32>, f32
-        %c0_8 = constant 0 : index
-        %c4_9 = constant 4 : index
-        %c1_10 = constant 1 : index
-        loop.for %arg3 = %c0_8 to %c4_9 step %c1_10 {
-          %5 = load %3[%c0_8] : memref<1xf32>
-          %6 = load %2[%arg3] : memref<4xf32>
-          %7 = addf %5, %6 : f32
-          store %7, %3[%c0_8] : memref<1xf32>
+        %cst = constant 0.000000e+00 : f32
+        %1 = alloc() : memref<1xf32>
+        linalg.fill(%1, %cst) : memref<1xf32>, f32
+        %c0_6 = constant 0 : index
+        %c4_7 = constant 4 : index
+        %c1_8 = constant 1 : index
+        loop.for %arg5 = %c0_6 to %c4_7 step %c1_8 {
+          %3 = load %1[%c0_6] : memref<1xf32>
+          %4 = load %0[%arg5] : memref<4xf32>
+          %5 = addf %3, %4 : f32
+          store %5, %1[%c0_6] : memref<1xf32>
         }
-        %4 = load %3[%c0_8] : memref<1xf32>
-        store %4, %arg0[%arg2, %arg1] : memref<4x4xf32>
+        %2 = load %1[%c0_6] : memref<1xf32>
+        store %2, %arg0[%arg4, %arg3] : memref<4x4xf32>
       }
     }
     return
