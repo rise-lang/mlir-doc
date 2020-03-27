@@ -1,9 +1,9 @@
 # MLIR
 
 ## Rise Dialect
+The bigger picture: [paper](https://michel.steuwer.info/publications/2020/AccML/)
 
-[paper](https://michel.steuwer.info/publications/2020/AccML/)
-[poster](https://drive.google.com/file/d/1mFumDjE5GHcsp9AFEDqF6kx4X9mT0LRT/view)
+A nice looking picture: [poster](https://drive.google.com/file/d/1mFumDjE5GHcsp9AFEDqF6kx4X9mT0LRT/view)
 
 
 
@@ -32,7 +32,7 @@
 
 - We strongly differ between functions and data. e.g we can never store functions
   in an array 
-- Nats are used for indexing Arrays. They will support computations an the
+- **Nat**s are used for indexing **Array**s. They will support computations an the
   indices.
 - We will see whether we can integrate more closely with datatypes of other
   dialects (e.g. memrefs)
@@ -43,11 +43,11 @@ This means an operation will never directly produce a `!rise.float` but always
 a `rise.data<float>`: a float wrapped in a **Data**.
 
 Next to the operations we have the following Attributes:
-`NatAttr`             -> `#rise.nat<natural_number_here>`           e.g. #rise.nat<1>
+`NatAttr`             -> `#rise.nat<natural_number_here>`           e.g. `#rise.nat<1>`
 
-`DataTypeAttr`        -> `#rise.some_datatype_here`                 e.g. #rise.float or #rise.array<float, 4>
+`DataTypeAttr`        -> `#rise.some_datatype_here`                 e.g. `#rise.float or #rise.array<float, 4>`
 
-`LiteralAttr`         -> `#rise.lit<some_datatype_and_its_value>`   e.g  #rise.lit<float<2>> (printing form likely to change soon to seperate type from value better!)
+`LiteralAttr`         -> `#rise.lit<some_datatype_and_its_value>`   e.g  `#rise.lit<float<2>>` (printing form likely to change soon to seperate type from value better!)
 
 
 ##### We follow the mlir syntax:
@@ -87,10 +87,12 @@ Note FunTypes always have a RiseType (either Data or FunType) both as input and 
 ### Lowering to imperative
 
 Lowering rise code (everything within rise.fun) to imperative is accomplished
-with the `riseToImperative` pass of `mlir-opt`. This brings us from the
-functional lambda calculus representation of mlir to an imperative
+with the `riseToImperative` pass of `mlir-opt`.
+
+This brings us from the functional lambda calculus representation of rise to an imperative
 representation, which for us right now means a mixture of the std, loop and
 linalg dialects.
+
 Leveraging the existing passes in MLIR, we can emit the llvm IR dialect by
 executing the passes: `mlir-opt -convert-rise-to-imperative -convert-linalg-to-loops -convert-loop-to-std -convert-std-to-llvm`
 
@@ -99,15 +101,15 @@ executing the passes: `mlir-opt -convert-rise-to-imperative -convert-linalg-to-l
 Besides the operations shown above which model lambda calculus, we also have
 the the following `codegen` operations, which drive imperative code generation. These are intermediate operations in the sense that they are created and consumed in the riseToImperative pass. They will not be emmitted.
 
-- rise.codegen.assign
-- rise.codegen.idx
-- rise.codegen.bin_op
-- rise.codegen.zip
-- rise.codegen.fst
-- rise.codegen.snd
+- `rise.codegen.assign`
+- `rise.codegen.idx`
+- `rise.codegen.bin_op`
+- `rise.codegen.zip`
+- `rise.codegen.fst`
+- `rise.codegen.snd`
 
 These Intermediate operations are constructed during the first lowering phase
-(rise -> intermediate) and mostly used to model indexing for reading and
+`(rise -> intermediate)` and are mostly used to model indexing for reading and
 writing multidimensional data. For details on the translation of these codegen
 operations to the final indexings refer to Figure 6 of [this paper[1]](https://michel.steuwer.info/files/publications/2017/arXiv-2017.pdf).
 
