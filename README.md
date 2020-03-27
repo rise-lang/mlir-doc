@@ -36,6 +36,7 @@ A nice looking picture: [poster](https://drive.google.com/file/d/1mFumDjE5GHcsp9
   indices.
 - We will see whether we can integrate more closely with datatypes of other
   dialects (e.g. memrefs)
+- Note: Int and Float here are custom to the Rise dialect and not from Standard 
 ![typesystem](ressources/type_system.png)
 
 All our operations return a **RiseType**. `rise.literal` and `rise.apply` return a **Data** and all others return a **FunType**. 
