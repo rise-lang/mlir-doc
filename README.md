@@ -60,7 +60,7 @@ Attributes begin with:      `#rise.`
 
 See the following examples:
 
-- `!rise.float` -                           `float` type
+- `!rise.float` -                           Float type
 
 - `!rise.array<4, float>` -                 ArrayType of size `4` with elementType `float`
 
