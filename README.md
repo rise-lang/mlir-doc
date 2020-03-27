@@ -36,7 +36,7 @@
   indices.
 - We will see whether we can integrate more closely with datatypes of other
   dialects (e.g. memrefs)
-[typesystem](ressources/type_system.png)
+![typesystem](ressources/type_system.png)
 
 All our operations return a **RiseType**. `rise.literal` and `rise.apply` return a **Data** and all others return a **FunType**. 
 This means an operation will never directly produce a `!rise.float` but always
