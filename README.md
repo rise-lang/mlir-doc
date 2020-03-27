@@ -43,44 +43,44 @@ This means an operation will never directly produce a `!rise.float` but always
 a `rise.data<float>`: a float wrapped in a **Data**.
 
 Next to the operations we have the following Attributes:
-NatAttr             -> #rise.nat<natural_number_here>           e.g. #rise.nat<1>
+`NatAttr`             -> `#rise.nat<natural_number_here>`           e.g. #rise.nat<1>
 
-DataTypeAttr        -> #rise.some_datatype_here                 e.g. #rise.float or #rise.array<float, 4>
+`DataTypeAttr`        -> `#rise.some_datatype_here`                 e.g. #rise.float or #rise.array<float, 4>
 
-LiteralAttr         -> #rise.lit<some_datatype_and_its_value>   e.g  #rise.lit<float<2>> (printing form likely to change soon to seperate type from value better!)
+`LiteralAttr`         -> `#rise.lit<some_datatype_and_its_value>`   e.g  #rise.lit<float<2>> (printing form likely to change soon to seperate type from value better!)
 
 
-Obviously we follow the mlir syntax:
+##### We follow the mlir syntax:
 
-Operations begin with:      rise.
+Operations begin with:      `rise.`
 
-Types begin with:           !rise.    (although we omit !rise. when nesting types)
+Types begin with:           `!rise.`    (although we omit !rise. when nesting types)
 
-Attributes begin with:      #rise.
+Attributes begin with:      `#rise.`
 
 See the following examples:
 
-!rise.float                           Float type
+- `!rise.float` -                           Float type
 
-!rise.array<4, float>                 ArrayType of size 4 with elementType float
+- `!rise.array<4, float>` -                 ArrayType of size 4 with elementType float
 
-!rise.array<2, array<2, int>          ArrayType of size 2 with elementType Arraytype of size 2 with elementType int
+- `!rise.array<2, array<2, int>` -         ArrayType of size 2 with elementType Arraytype of size 2 with elementType int
 
 
-!rise.data<float>>                    Data containing the DataType Float (might for example be the result of a Lambda)
+- `!rise.data<float>>` -                    Data containing the DataType Float (might for example be the result of a Lambda)
   
-!rise.data<array<4, float>>           Data containint an ArrayType of size 4 with elementType float
+- `!rise.data<array<4, float>>` -           Data containint an ArrayType of size 4 with elementType float
 
-!rise.fun<data<float> -> data<int>>   FunType from data<float> to data<int>
+- `!rise.fun<data<float> -> data<int>>` -   FunType from data<float> to data<int>
   
-!rise.fun<fun<data<int> -> data<int>> -> data<int>>   FunType with input FunType from (data<int> to data<int>) to data<int> 
+- `!rise.fun<fun<data<int> -> data<int>> -> data<int>>` -   FunType with input FunType from (data<int> to data<int>) to data<int> 
   
 Note FunTypes always have a RiseType (either Data or FunType) both as input and output!
 
 
-#rise.lit<float<4>>                   LiteralAttribute containing a float of value 4
+- `#rise.lit<float<4>>` -                   LiteralAttribute containing a float of value 4
 
-#rise.lit<array<4, float, [1,2,3,4]> LiteralAttribute containing an Array of 4 floats with values, 1,2,3 and 4 
+- `#rise.lit<array<4, float, [1,2,3,4]>` - LiteralAttribute containing an Array of 4 floats with values, 1,2,3 and 4 
 
 
 
