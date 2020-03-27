@@ -12,21 +12,21 @@
 
 
 ##### Operations: 
-- rise.lambda
-- rise.apply
+`rise.lambda`
+`rise.apply`
 
-- rise.zip
-- rise.map
-- rise.reduce
-- rise.tuple
-- rise.fst
-- rise.snd
+`rise.zip`
+`rise.map`
+`rise.reduce`
+`rise.tuple`
+`rise.fst`
+`rise.snd`
 
-- rise.fun
-- rise.in
-- rise.return
-- rise.add
-- rise.mul
+`rise.fun`
+`rise.in`
+`rise.return`
+`rise.add`
+`rise.mul`
 
 ##### Typesystem:
 
@@ -54,33 +54,32 @@ Next to the operations we have the following Attributes:
 
 Operations begin with:      `rise.`
 
-Types begin with:           `!rise.`    (although we omit !rise. when nesting types)
+Types begin with:           `!rise.`    (although we omit `!rise.` when nesting types)
 
 Attributes begin with:      `#rise.`
 
 See the following examples:
 
-- `!rise.float` -                           Float type
+- `!rise.float` -                           `float` type
 
-- `!rise.array<4, float>` -                 ArrayType of size 4 with elementType float
+- `!rise.array<4, float>` -                 ArrayType of size `4` with elementType `float`
 
-- `!rise.array<2, array<2, int>` -         ArrayType of size 2 with elementType Arraytype of size 2 with elementType int
+- `!rise.array<2, array<2, int>` -         ArrayType of size `2` with elementType Arraytype of size `2` with elementType `int`
 
 
-- `!rise.data<float>>` -                    Data containing the DataType Float (might for example be the result of a Lambda)
+- `!rise.data<float>>` -                    Data containing the DataType `float` (might for example be the result of a Lambda)
   
-- `!rise.data<array<4, float>>` -           Data containint an ArrayType of size 4 with elementType float
+- `!rise.data<array<4, float>>` -           Data containint an ArrayType of size `4` with elementType `float`
+
+Note FunTypes always have a RiseType (either Data or FunType) both as input and output!
 
 - `!rise.fun<data<float> -> data<int>>` -   FunType from data<float> to data<int>
   
-- `!rise.fun<fun<data<int> -> data<int>> -> data<int>>` -   FunType with input FunType from (data<int> to data<int>) to data<int> 
-  
-Note FunTypes always have a RiseType (either Data or FunType) both as input and output!
+- `!rise.fun<fun<data<int> -> data<int>> -> data<int>>` -   FunType with input FunType from (`data<int>` to `data<int>`) to `data<int>` 
 
+- `#rise.lit<float<4>>` -                   LiteralAttribute containing a `float` of value `4`
 
-- `#rise.lit<float<4>>` -                   LiteralAttribute containing a float of value 4
-
-- `#rise.lit<array<4, float, [1,2,3,4]>` - LiteralAttribute containing an Array of 4 floats with values, 1,2,3 and 4 
+- `#rise.lit<array<4, float, [1,2,3,4]>` - LiteralAttribute containing an Array of `4` floats with values, 1,2,3 and 4 
 
 
 
