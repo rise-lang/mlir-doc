@@ -100,7 +100,7 @@ executing the passes: `mlir-opt -convert-rise-to-imperative -convert-linalg-to-l
 
 ##### Intermediate Stage
 Besides the operations shown above which model lambda calculus, we also have
-the the following `codegen` operations, which drive imperative code generation. These are intermediate operations in the sense that they are created and consumed in the riseToImperative pass. They will not be emmitted.
+the the following `codegen` operations, which drive imperative code generation. These are intermediate operations in the sense that they are created and consumed in the riseToImperative pass. They will not be emmitted. 
 
 - `rise.codegen.assign`
 - `rise.codegen.idx`
@@ -111,7 +111,7 @@ the the following `codegen` operations, which drive imperative code generation. 
 
 These Intermediate operations are constructed during the first lowering phase
 `(rise -> intermediate)` and are mostly used to model indexing for reading and
-writing multidimensional data. For details on the translation of these codegen
+writing multidimensional data. They have similarities with views on the data. For details on the translation of these codegen
 operations to the final indexings refer to Figure 6 of [this paper[1]](https://michel.steuwer.info/files/publications/2017/arXiv-2017.pdf).
 
 
