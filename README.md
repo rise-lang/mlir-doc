@@ -11,10 +11,13 @@ A nice looking picture: [poster](https://drive.google.com/file/d/1mFumDjE5GHcsp9
 ### Design
 
 
-##### Operations: 
+##### Operations:
+
+Core lambda calculus:
 `rise.lambda`
 `rise.apply`
 
+Patterns:
 `rise.zip`
 `rise.map`
 `rise.reduce`
@@ -22,12 +25,14 @@ A nice looking picture: [poster](https://drive.google.com/file/d/1mFumDjE5GHcsp9
 `rise.fst`
 `rise.snd`
 
-`rise.fun`
-`rise.in`
+Scalar primitives:
 `rise.return`
 `rise.add`
 `rise.mul`
 
+Interoperability:
+`rise.fun`
+`rise.in`
 ##### Typesystem:
 
 - We clearly separate between functions and data, i.e. we can never store functions
@@ -109,12 +114,11 @@ Overall the example in the Rise MLIR dialect looks like
 %mapDoubleFun = rise.apply %map4IntsToInts, %doubleFun %array
 ```
 
-Let us highlight some key principles regarding the `map` operation:
+Let us highlight some key principles regarding the `map` operation that are true for all Rise patterns (`zip`, `fst`, ...):
 - `rise.map` is a function that is called using `rise.apply`.
 - For `rise.map` a couple of attributes are specified, here: `rise.map #rise.nat<4> #rise.float #rise.float`.
   These are required to specify the type of the `map` function at this specific call site.
   You can think about the `rise.map` operation as being *polymorphic* and that the attributes specify the type parameters to make the resulting MLIR value `%map4IntsToInts` *monomorphic* (i.e. it has a concrete type free of type parameters).
-
 
 ### Lowering to imperative
 
