@@ -13,11 +13,11 @@ A nice looking picture: [poster](https://drive.google.com/file/d/1mFumDjE5GHcsp9
 
 ##### Operations:
 
-Core lambda calculus:
+*Core lambda calculus*:
 `rise.lambda`
 `rise.apply`
 
-Patterns:
+*Patterns*:
 `rise.zip`
 `rise.map`
 `rise.reduce`
@@ -25,12 +25,12 @@ Patterns:
 `rise.fst`
 `rise.snd`
 
-Scalar primitives:
+*Scalar primitives*:
 `rise.return`
 `rise.add`
 `rise.mul`
 
-Interoperability:
+*Interoperability*:
 `rise.fun`
 `rise.in`
 ##### Typesystem:
