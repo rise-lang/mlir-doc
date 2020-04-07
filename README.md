@@ -152,6 +152,7 @@ operations to the final indexings refer to Figure 6 of [this paper[1]](https://m
 
 
 ##### Here are further descriptions of lowering specific examples:
+- [lowering with better composability](lowering/lowering_with_better_composability.md)
 - [current state of lowering to imperative](lowering/state_of_lowering_23_03.md)
 - [current(outdated) state of lowering to imperative](lowering/state_of_lowering.md)
 - [lowering strategy and concepts](lowering/lowering_strategy_and_concepts.md)
