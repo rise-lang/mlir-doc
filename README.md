@@ -1,3 +1,9 @@
+---
+title: README
+created: '2020-05-20T16:13:04.640Z'
+modified: '2020-05-20T17:19:22.085Z'
+---
+
 # MLIR
 
 ## Rise Dialect
@@ -6,54 +12,47 @@ The bigger picture: [paper](https://michel.steuwer.info/publications/2020/AccML/
 A nice looking picture: [poster](https://drive.google.com/file/d/1mFumDjE5GHcsp9AFEDqF6kx4X9mT0LRT/view)
 
 
-
-
 ### Design
-
 
 ##### Operations:
 
 *Core lambda calculus*:
 `rise.lambda`
 `rise.apply`
+`rise.return`
 
 *Patterns*:
 `rise.zip`
-`rise.map`
-`rise.reduce`
+`rise.mapSeq`
+`rise.mapPar`
+`rise.reduceSeq`
 `rise.tuple`
 `rise.fst`
 `rise.snd`
 
-*Scalar primitives*:
-`rise.return`
-`rise.add`
-`rise.mul`
-
 *Interoperability*:
-`rise.fun`
+`rise.embed`
 `rise.in`
+`rise.out`
+
 ##### Typesystem:
 
 - We clearly separate between functions and data, i.e. we can never store functions
   in an array
-- **Nat**s are used for demonting the dimentions of **Array**s. They will support computations an the
-  indices.
-- We will see in the future whether we can integrate more closely with datatypes of other
-  dialects (e.g. memrefs)
-- Note: Int and Float here are - for now - custom to the Rise dialect and not from Standard 
-![typesystem](ressources/type_system.png)
+- **Nat**s are used for denoting the dimensions of **Array**s. They will support computations an the indices.
+- **Scalar**s are used to wrap arbitrary scalar types from other MLIR dialects e.g. `scalar<f32>`
+
+
+![typesystem](resources/type_system_new.png)
 
 All our operations return a **RiseType**. `rise.literal` and `rise.apply` return a **Data** and all others return a **FunType**. 
-This means an operation will never directly produce a `!rise.float` but always
-a `rise.data<float>`: a float wrapped in a **Data**.
 
 Next to the operations we have the following *Attributes*:
 `NatAttr`             -> `#rise.nat<natural_number_here>`           e.g. `#rise.nat<1>`
 
-`DataTypeAttr`        -> `#rise.some_datatype_here`                 e.g. `#rise.float or #rise.array<float, 4>`
+`DataTypeAttr`        -> `#rise.some_datatype_here`                 e.g. `#rise.scalar<f32> or #rise.array<4, scalar<f32>>`
 
-`LiteralAttr`         -> `#rise.lit<some_datatype_and_its_value>`   e.g  `#rise.lit<float<2>>` (printing form likely to change soon to seperate type from value better!)
+`LiteralAttr`         -> `#rise.lit<some_datatype_and_its_value>`   e.g  `#rise.lit<2.0>` (printing form likely to change soon to seperate type from value better!)
 
 
 ##### Syntax:
@@ -62,34 +61,30 @@ We follow the mlir syntax.
 
 *Operations* begin with:      `rise.`
 
-*Types* begin with:           `!rise.`    (although we omit `!rise.` when nesting types, e.g. `!rise.array<float, 4>` instead of `!rise.array<rise.float, 4>`)
+*Types* begin with:           `!rise.`    (although we omit `!rise.` when nesting types, e.g. `!rise.array<4, scalar<f32>>` instead of `!rise.array<4, !rise.scalar<f32>>`)
 
 *Attributes* begin with:      `#rise.`
 
 See the following examples of types:
 
-- `!rise.float` -                           Float type
+- `!rise.scalar<f32>` -                           Float type
 
-- `!rise.array<4, float>` -                 ArrayType of size `4` with elementType `float`
+- `!rise.array<4, scalar<f32>>` -                 ArrayType of size `4` with elementType `scalar<f32>`
 
-- `!rise.array<2, array<2, int>` -         ArrayType of size `2` with elementType Arraytype of size `2` with elementType `int`
+- `!rise.array<2, array<2, scalar<f32>>` -         ArrayType of size `2` with elementType Arraytype of size `2` with elementType `scalar<f32>`
 
-
-- `!rise.data<float>>` -                    Data containing the DataType `float` (might for example be the result of a Lambda)
-  
-- `!rise.data<array<4, float>>` -           Data containint an ArrayType of size `4` with elementType `float`
 
 Note FunTypes always have a RiseType (either Data or FunType) both as input and output!
 
-- `!rise.fun<data<float> -> data<int>>` -   FunType from data<float> to data<int>
+- `!rise.fun<tuple<scalar<f32>, scalar<f32>> -> scalar<f32>>` -   FunType from a tuple of two `scalar<f32>` to a single `scalar<f32>`
   
-- `!rise.fun<fun<data<int> -> data<int>> -> data<int>>` -   FunType with input FunType from (`data<int>` to `data<int>`) to `data<int>` 
+- `!rise.fun<fun<scalar<f32> -> scalar<f32>> -> scalar<f32>>` -   FunType with input FunType from (`scalar<f32>` to `scalar<f32>`) to `scalar<f32>` 
 
 See the following examples of attributes:
 
-- `#rise.lit<float<4>>` -                   LiteralAttribute containing a `float` of value `4`
+- `#rise.lit<4.0>` -                   LiteralAttribute containing a `float` of value `4`
 
-- `#rise.lit<array<4, float, [1,2,3,4]>` - LiteralAttribute containing an Array of `4` floats with values, 1,2,3 and 4 
+- `#rise.lit<array<4, scalar<f32>, [1,2,3,4]>` - LiteralAttribute containing an Array of `4` floats with values, 1,2,3 and 4 
 
 ##### Modeling of Lambda Calculus:
 
