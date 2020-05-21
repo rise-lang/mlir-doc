@@ -1,7 +1,7 @@
 ---
 title: README
 created: '2020-05-20T16:13:04.640Z'
-modified: '2020-05-20T17:19:22.085Z'
+modified: '2020-05-21T12:45:16.268Z'
 ---
 
 # MLIR
@@ -11,6 +11,7 @@ The bigger picture: [paper](https://michel.steuwer.info/publications/2020/AccML/
 
 A nice looking picture: [poster](https://drive.google.com/file/d/1mFumDjE5GHcsp9AFEDqF6kx4X9mT0LRT/view)
 
+A 30fps sequence of pictures: [Rise @ MLIR ODM talk](https://drive.google.com/drive/u/0/folders/1ysFBcQhlgDiJg-K87m4WRTa7dKLUyiDM)
 
 ### Design
 
@@ -39,7 +40,7 @@ A nice looking picture: [poster](https://drive.google.com/file/d/1mFumDjE5GHcsp9
 
 - We clearly separate between functions and data, i.e. we can never store functions
   in an array
-- **Nat**s are used for denoting the dimensions of **Array**s. They will support computations an the indices.
+- **Nat**s are used for denoting the dimensions of **Array**s. They will support computations in the indices.
 - **Scalar**s are used to wrap arbitrary scalar types from other MLIR dialects e.g. `scalar<f32>`
 
 
@@ -100,24 +101,26 @@ We model each of these components individually:
 Overall the example in the Rise MLIR dialect looks like
 ```
 %array = rise.literal #rise.lit<array<4, !rise.float, [5,5,5,5]>>
-%doubleFun = rise.lambda (%summand) : !rise.fun<data<float> -> data<float>> {
-  %addFun = rise.add #rise.float
-  %doubled = rise.apply %addFun, %summand, %summand
-  rise.return %doubled : !rise.data<float>
+%doubleFun = rise.lambda (%summand : !rise.scalar<f32>) -> !rise.scalar<f32> {
+  %doubled = rise.embed(%summand) {
+    %added = addf %summand, %summand : f32
+    rise.return %added : f32
+  }
+  rise.return %doubled : !rise.scalar<f32>
 }
-%map4IntsToInts = rise.map #rise.nat<4> #rise.float #rise.float
-%mapDoubleFun = rise.apply %map4IntsToInts, %doubleFun %array
+%map = rise.map #rise.nat<4> #rise.scalar<f32> #rise.scalar<f32>
+%mapDoubleFun = rise.apply %map, %doubleFun %array
 ```
 
 Let us highlight some key principles regarding the `map` operation that are true for all Rise patterns (`zip`, `fst`, ...):
 - `rise.map` is a function that is called using `rise.apply`.
-- For `rise.map` a couple of attributes are specified, here: `rise.map #rise.nat<4> #rise.float #rise.float`.
+- For `rise.map` a couple of attributes are specified, here: `rise.map #rise.nat<4> #rise.scalar<f32> #rise.scalar<f32>`.
   These are required to specify the type of the `map` function at this specific call site.
-  You can think about the `rise.map` operation as being *polymorphic* and that the attributes specify the type parameters to make the resulting MLIR value `%map4IntsToInts` *monomorphic* (i.e. it has a concrete type free of type parameters).
+  You can think about the `rise.map` operation as being *polymorphic* and that the attributes specify the type parameters to make the resulting MLIR value `%map` *monomorphic* (i.e. it has a concrete type free of type parameters).
 
 ### Lowering to imperative
 
-Lowering rise code (everything within rise.fun) to imperative is accomplished
+Lowering rise code to imperative is accomplished
 with the `riseToImperative` pass of `mlir-opt`.
 
 This brings us from the functional lambda calculus representation of rise to an imperative
@@ -134,7 +137,6 @@ Besides we also have the following internal `codegen` operations, which drive th
 
 - `rise.codegen.assign`
 - `rise.codegen.idx`
-- `rise.codegen.bin_op`
 - `rise.codegen.zip`
 - `rise.codegen.fst`
 - `rise.codegen.snd`
@@ -146,7 +148,8 @@ operations to the final indexings refer to Figure 6 of [this paper[1]](https://m
 
 
 
-##### Here are further descriptions of lowering specific examples:
+
+##### Outdated but kept for future reference: Here are further descriptions of lowering specific examples:
 - [lowering with better composability](lowering/lowering_with_better_composability.md)
 - [current state of lowering to imperative](lowering/state_of_lowering_23_03.md)
 - [current(outdated) state of lowering to imperative](lowering/state_of_lowering.md)
@@ -155,8 +158,6 @@ operations to the final indexings refer to Figure 6 of [this paper[1]](https://m
 - [lowering a simple 2D map](lowering/simple_2D_map_lowering.md)
 - [lowering a simple map](lowering/simple_map_lowering.md)
 - [lowering a simple zip](lowering/simple_zip_lowering.md)
-
-outdated but kept around for later reference:
 - [outdated - lowering a simple reduction - example](lowering/old_reduce_lowering_to_imperative.md)
 - [outdated - lowering a reduction - IR transformation](lowering/old_reduction_lowering_IR_transformations.md)
 - [concept for lowering a dot_product](lowering/concept_for_lowering_dot_product.md)
