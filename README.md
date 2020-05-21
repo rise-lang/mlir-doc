@@ -1,9 +1,3 @@
----
-title: README
-created: '2020-05-20T16:13:04.640Z'
-modified: '2020-05-21T12:45:16.268Z'
----
-
 # MLIR
 
 ## Rise Dialect
