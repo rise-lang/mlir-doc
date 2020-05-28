@@ -144,6 +144,11 @@ operations to the final indexings refer to Figure 6 of [this paper[1]](https://m
 #### Lowering different examples to imperative code (scf + std)
 - [lowering with better composability](lowering/lowering_with_better_composability.md)
 
+#### Design Discussions
+- [changing types of intermediate codegen
+  representation](lowering/changing_intermediate_types.md)
+
+
 ##### Outdated but kept for future reference: Here are further descriptions of lowering specific examples:
 - [current state of lowering to imperative](lowering/state_of_lowering_23_03.md)
 - [current(outdated) state of lowering to imperative](lowering/state_of_lowering.md)
