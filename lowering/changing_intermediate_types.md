@@ -253,7 +253,7 @@ func @reduce(%outArg:memref<f32>, %inArg:memref<1024xf32>) {
 ```
 
 ```C++
-  func @rise_fun(%arg0: memref<f32>, %arg1: memref<1024xf32>) {
+  func @reduce(%arg0: memref<f32>, %arg1: memref<1024xf32>) {
     %0 = "rise.in"(%arg1) : (memref<1024xf32>) -> !rise.array<1024, scalar<f32>>
     %1 = "rise.codegen.cast"(%arg0) : (memref<f32>) -> !rise.scalar<f32>
     %c0 = constant 0 : index
