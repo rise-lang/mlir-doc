@@ -225,3 +225,55 @@ func @mm(%arg0: memref<4x4xf32>, %arg1: memref<4x4xf32>, %arg2: memref<4x4xf32>)
 }
 ```
 
+### reduce
+
+```C++
+func @reduce(%outArg:memref<f32>, %inArg:memref<1024xf32>) {
+    %array0 = rise.in %inArg : !rise.array<1024, scalar<f32>>
+
+    %reductionAdd = rise.lambda (%summand0 : !rise.scalar<f32>, %summand1 : !rise.scalar<f32>) -> !rise.scalar<f32> {
+        %result = rise.embed(%summand0, %summand1) {
+            %result = addf %summand0, %summand1 : f32
+            rise.return %result : f32
+        }
+        rise.return %result : !rise.scalar<f32>
+    }
+    %initializer = rise.literal #rise.lit<0.0>
+    %reduce4Ints = rise.reduceSeq #rise.nat<1024> #rise.scalar<f32> #rise.scalar<f32>
+    %result = rise.apply %reduce4Ints, %reductionAdd, %initializer, %array0
+    rise.out %outArg <- %result
+    return
+}
+```
+
+```
+        |       Lowering to Intermediate (this is for debugging purposes and not the result of the lowering pass)
+        |           rise.codegen.*
+        V
+```
+
+```C++
+  func @rise_fun(%arg0: memref<f32>, %arg1: memref<1024xf32>) {
+    %0 = "rise.in"(%arg1) : (memref<1024xf32>) -> !rise.array<1024, scalar<f32>>
+    %1 = "rise.codegen.cast"(%arg0) : (memref<f32>) -> !rise.scalar<f32>
+    %c0 = constant 0 : index
+    %2 = "rise.embed"() ( {
+      %cst = constant 0.000000e+00 : f32
+      "rise.return"(%cst) : (f32) -> ()
+    }) : () -> !rise.scalar<f32>
+    "rise.codegen.assign"(%2, %1) : (!rise.scalar<f32>, !rise.scalar<f32>) -> ()
+    %c0_0 = constant 0 : index
+    %c1024 = constant 1024 : index
+    %c1 = constant 1 : index
+    scf.for %arg2 = %c0_0 to %c1024 step %c1 {
+      %4 = "rise.codegen.idx"(%0, %arg2) : (!rise.array<1024, scalar<f32>>, index) -> !rise.scalar<f32>
+      %5 = "rise.embed"(%4, %1) ( {
+      ^bb0(%arg3: f32, %arg4: f32):  // no predecessors
+        %6 = addf %arg3, %arg4 : f32
+        "rise.return"(%6) : (f32) -> ()
+      }) : (!rise.scalar<f32>, !rise.scalar<f32>) -> !rise.scalar<f32>
+      "rise.codegen.assign"(%5, %1) : (!rise.scalar<f32>, !rise.scalar<f32>) -> ()
+    }
+    return
+  }
+```
