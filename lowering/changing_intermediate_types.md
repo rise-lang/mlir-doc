@@ -165,7 +165,7 @@ func @mm(%outArg:memref<4x4xf32>, %inA:memref<4x4xf32>, %inB:memref<4x4xf32>) {
 ```
 
 ```C++
-func @rise_fun(%arg0: memref<4x4xf32>, %arg1: memref<4x4xf32>, %arg2: memref<4x4xf32>) {
+func @mm(%arg0: memref<4x4xf32>, %arg1: memref<4x4xf32>, %arg2: memref<4x4xf32>) {
   %0 = "rise.in"(%arg1) : (memref<4x4xf32>) -> !rise.array<4, array<4, scalar<f32>>>
   %1 = "rise.in"(%arg2) : (memref<4x4xf32>) -> !rise.array<4, array<4, scalar<f32>>>
   %2 = "rise.codegen.cast"(%arg0) : (memref<4x4xf32>) -> !rise.array<4, array<4, scalar<f32>>>
